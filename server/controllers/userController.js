@@ -125,7 +125,7 @@ const addToBrowseHistory = async (req, res) => {
       viewedAt: new Date()
     });
 
-    // Keep only last 50 items
+    // Keep only last 50 items for commit
     if (req.user.browseHistory.length > 50) {
       req.user.browseHistory = req.user.browseHistory.slice(0, 50);
     }
