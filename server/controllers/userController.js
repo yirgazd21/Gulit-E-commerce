@@ -81,14 +81,17 @@ const getUserFavorites = async (req, res) => {
       })
       .select('favorites');
 
-    const favorites = user.favorites.map(fav => ({
-      id: fav.product._id,
-      name: fav.product.name,
-      image: fav.product.image,
-      price: fav.product.price,
-      category: fav.product.category,
-      date: fav.addedAt
-    }));
+    // Filter out entries where the product was deleted from the DB
+    const favorites = user.favorites
+      .filter(fav => fav.product != null)
+      .map(fav => ({
+        id: fav.product._id,
+        name: fav.product.name,
+        image: fav.product.image,
+        price: fav.product.price,
+        category: fav.product.category,
+        date: fav.addedAt
+      }));
 
     res.json(favorites);
   } catch (error) {
@@ -154,14 +157,17 @@ const getUserBrowseHistory = async (req, res) => {
       })
       .select('browseHistory');
 
-    const browseHistory = user.browseHistory.map(history => ({
-      id: history.product._id,
-      name: history.product.name,
-      image: history.product.image,
-      price: history.product.price,
-      category: history.product.category,
-      date: history.viewedAt
-    }));
+    // Filter out entries where the product was deleted from the DB
+    const browseHistory = user.browseHistory
+      .filter(history => history.product != null)
+      .map(history => ({
+        id: history.product._id,
+        name: history.product.name,
+        image: history.product.image,
+        price: history.product.price,
+        category: history.product.category,
+        date: history.viewedAt
+      }));
 
     res.json(browseHistory);
   } catch (error) {

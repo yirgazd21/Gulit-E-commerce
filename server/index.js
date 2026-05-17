@@ -42,61 +42,57 @@ const io = new Server(server, {
 });
 
 // ─── REDIS ADAPTER (OPTIONAL — server starts even if Redis is down) ───────────
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const REDIS_URLS = [
+  process.env.REDIS_URL          || 'redis://10.40.210.101:6379',
+  process.env.REDIS_URL_FALLBACK || 'redis://10.40.210.21:6379',
+].filter(Boolean);
 
 let redisConnected = false;
 
 const tryConnectRedis = async () => {
-  // Always create fresh clients — reusing a failed client causes issues
-  const pubClient = createClient({
-    url: redisUrl,
-    socket: { connectTimeout: 4000, reconnectStrategy: false }, // disable built-in reconnect — we handle it
-  });
-  const subClient = pubClient.duplicate();
+  for (const redisUrl of REDIS_URLS) {
+    const pubClient = createClient({
+      url: redisUrl,
+      socket: { connectTimeout: 4000, reconnectStrategy: false },
+    });
+    const subClient = pubClient.duplicate();
 
-  // Suppress errors during the connection attempt itself — we handle them in the catch block
-  // Once connected, log any unexpected drops
-  const onError = (label) => (err) => {
-    if (redisConnected) {
-      console.warn(`⚠️  [Redis] ${label} error: ${err.message}`);
-    }
-  };
-
-  pubClient.on('error', onError('pub'));
-  subClient.on('error', onError('sub'));
-
-  try {
-    await Promise.all([pubClient.connect(), subClient.connect()]);
-    io.adapter(createAdapter(pubClient, subClient));
-    redisConnected = true;
-    console.log('🚀 [Redis] Socket.IO cluster bridge active — both nodes are synced.');
-
-    // When connection drops, clean up and retry
-    const onEnd = () => {
+    const onError = (label) => (err) => {
       if (redisConnected) {
-        redisConnected = false;
-        console.warn('⚠️  [Redis] Connection lost. Running in SINGLE-NODE mode. Retrying in 15s...');
-        setTimeout(tryConnectRedis, 15000);
+        console.warn(`⚠️  [Redis] ${label} error: ${err.message}`);
       }
     };
-    pubClient.on('end', onEnd);
-    subClient.on('end', onEnd);
+    pubClient.on('error', onError('pub'));
+    subClient.on('error', onError('sub'));
 
-  } catch (err) {
-    // Clean up failed clients silently
-    try { pubClient.disconnect(); } catch (_) {}
-    try { subClient.disconnect(); } catch (_) {}
+    try {
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+      io.adapter(createAdapter(pubClient, subClient));
+      redisConnected = true;
+      console.log(`🚀 [Redis] Socket.IO cluster bridge active via ${redisUrl}`);
 
-    if (redisConnected) {
-      // Was connected before — this is a reconnect failure
-      redisConnected = false;
-      console.warn(`⚠️  [Redis] Reconnect failed. Retrying in 15s...`);
-    } else {
-      // First-time or ongoing failure — log once, not twice
-      console.warn(`⚠️  [Redis] Unavailable — PC2 may be offline. Socket.IO in SINGLE-NODE mode. Retrying in 15s...`);
+      const onEnd = () => {
+        if (redisConnected) {
+          redisConnected = false;
+          console.warn(`⚠️  [Redis] Connection lost (${redisUrl}). Trying all nodes in 15s...`);
+          setTimeout(tryConnectRedis, 15000);
+        }
+      };
+      pubClient.on('end', onEnd);
+      subClient.on('end', onEnd);
+
+      return; // connected — stop trying other URLs
+    } catch (_) {
+      // This URL failed — try next one
+      try { pubClient.disconnect(); } catch (_) {}
+      try { subClient.disconnect(); } catch (_) {}
     }
-    setTimeout(tryConnectRedis, 15000);
   }
+
+  // All URLs failed
+  if (redisConnected) redisConnected = false;
+  console.warn(`⚠️  [Redis] All nodes unavailable. Socket.IO in SINGLE-NODE mode. Retrying in 15s...`);
+  setTimeout(tryConnectRedis, 15000);
 };
 
 tryConnectRedis();
