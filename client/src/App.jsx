@@ -3,7 +3,10 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { io } from 'socket.io-client';
+import { useDispatch, useSelector } from 'react-redux';
 import { getActiveBackendUrl, rotateBackendNode } from './utils/networkConfig';
+import { loadCartFromDB } from './store/slices/cartSlice';
+import { usersApiSlice } from './store/slices/usersApiSlice';
 
 // Buyer Components
 import Layout from './components/Layout';
@@ -82,9 +85,25 @@ const RouteScopeSync = () => {
 
 const App = () => {
   const { theme } = useTheme();
+  const dispatch = useDispatch();
+  const { userInfo } = useSelector((state) => state.auth);
 
   const [socket, setSocket] = useState(null);
   const [currentBackend, setCurrentBackend] = useState(getActiveBackendUrl());
+
+  // Load cart from DB on app startup when user is already logged in (e.g. after page refresh)
+  useEffect(() => {
+    if (!userInfo) return;
+    dispatch(
+      usersApiSlice.endpoints.getCart.initiate(undefined, { forceRefetch: true })
+    ).then((result) => {
+      if (result.data) {
+        dispatch(loadCartFromDB(result.data));
+      }
+    }).catch(() => {
+      // DB unavailable — cart stays empty in Redux, will reload when DB reconnects
+    });
+  }, [userInfo, dispatch]);
 
  useEffect(() => {
   let activeSocketUrl = getActiveBackendUrl();
