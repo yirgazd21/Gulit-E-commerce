@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRegisterMutation, useGoogleAuthMutation } from '../store/slices/usersApiSlice';
 import { setCredentials } from '../store/slices/authSlice';
+import { clearCartItems, loadCartFromDB } from '../store/slices/cartSlice';
+import { usersApiSlice } from '../store/slices/usersApiSlice';
 import { toast } from 'react-toastify';
 import { FaUser, FaEnvelope, FaLock, FaGoogle, FaEye, FaEyeSlash } from 'react-icons/fa';
 import logo from '../assets/gulit.png';
@@ -43,6 +45,7 @@ const RegisterScreen = () => {
         callback: async (response) => {
           try {
             const res = await googleAuth({ credential: response.credential }).unwrap();
+            dispatch(clearCartItems());
             dispatch(setCredentials({ ...res }));
             toast.success('Account ready with Google');
             navigate(redirect);
@@ -86,7 +89,9 @@ const RegisterScreen = () => {
     } else {
       try {
         const res = await register({ name, email, password }).unwrap();
+        dispatch(clearCartItems());
         dispatch(setCredentials({ ...res }));
+        // New user — cart is empty in DB, nothing to load
         toast.success('Account created successfully!');
         navigate(redirect);
       } catch (err) {

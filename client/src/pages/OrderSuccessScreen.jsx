@@ -6,12 +6,14 @@ import { useDispatch } from 'react-redux';
 import Loader from '../components/Loader';
 import { useVerifyChapaPaymentMutation } from '../store/slices/ordersApiSlice';
 import { clearCartItems, removePaidItems } from '../store/slices/cartSlice';
+import { useClearCartDBMutation, useRemoveFromCartDBMutation } from '../store/slices/usersApiSlice';
 
 const OrderSuccessScreen = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const [verifyChapaPayment] = useVerifyChapaPaymentMutation();
+  const [clearCartDB] = useClearCartDBMutation();
 
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
@@ -55,14 +57,15 @@ const OrderSuccessScreen = () => {
         try {
           const productIds = (order.orderItems || []).map((it) => String(it.product));
           if (productIds.length > 0) {
-            // dispatch removePaidItems if available, otherwise fallback to clearing cart
-            // remove paid products from cart
             dispatch(removePaidItems(productIds));
           } else {
             dispatch(clearCartItems());
           }
+          // Clear DB cart
+          await clearCartDB().unwrap();
         } catch (e) {
           dispatch(clearCartItems());
+          try { await clearCartDB().unwrap(); } catch (_) {}
         }
 
         setOrderDetails(order);
@@ -86,16 +89,9 @@ const OrderSuccessScreen = () => {
           localStorage.removeItem('pendingOrderId');
           localStorage.removeItem('pendingPayItem');
           try {
-            const productIds = (order.orderItems || []).map((it) => String(it.product));
-            if (productIds.length > 0) {
-              // remove paid products from cart
-              dispatch(removePaidItems(productIds));
-            } else {
-              dispatch(clearCartItems());
-            }
-          } catch (e) {
             dispatch(clearCartItems());
-          }
+            await clearCartDB().unwrap();
+          } catch (_) {}
           setSuccess(true);
           if (!toastShown.current) {
             toastShown.current = true;

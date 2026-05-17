@@ -96,6 +96,42 @@ export const usersApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['BrowseHistory'],
     }),
+
+    // ─── Cart endpoints ───────────────────────────────────────────────
+    getCart: builder.query({
+      query: () => `${USERS_URL}/cart`,
+      providesTags: ['Cart'],
+    }),
+    addToCartDB: builder.mutation({
+      query: (data) => ({
+        url: `${USERS_URL}/cart`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Cart'],
+    }),
+    removeFromCartDB: builder.mutation({
+      query: (cartItemId) => ({
+        url: `${USERS_URL}/cart/${encodeURIComponent(cartItemId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Cart'],
+    }),
+    clearCartDB: builder.mutation({
+      query: () => ({
+        url: `${USERS_URL}/cart`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Cart'],
+    }),
+    syncCartDB: builder.mutation({
+      query: (cartItems) => ({
+        url: `${USERS_URL}/cart`,
+        method: 'PUT',
+        body: { cartItems },
+      }),
+      invalidatesTags: ['Cart'],
+    }),
   }),
 });
 
@@ -113,4 +149,9 @@ export const {
   useGetUserBrowseHistoryQuery,
   useAddToBrowseHistoryMutation,
   useRemoveFromBrowseHistoryMutation,
+  useGetCartQuery,
+  useAddToCartDBMutation,
+  useRemoveFromCartDBMutation,
+  useClearCartDBMutation,
+  useSyncCartDBMutation,
 } = usersApiSlice;

@@ -110,7 +110,7 @@ export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: dynamicClusterBaseQuery,
   tagTypes: [
-    'Product', 'Category', 'Order', 'User', 'Favorites', 'BrowseHistory', 
+    'Product', 'Category', 'Order', 'User', 'Favorites', 'BrowseHistory', 'Cart',
     'seller', 'SellerProduct', 'SellerOrder', 'AdminSeller', 'AdminUser', 
     'AdminOrder', 'AdminFinance', 'AdminSupport'
   ],

@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation, useGoogleAuthMutation } from '../store/slices/usersApiSlice';
 import { setCredentials } from '../store/slices/authSlice';
+import { clearCartItems, loadCartFromDB } from '../store/slices/cartSlice';
+import { usersApiSlice } from '../store/slices/usersApiSlice';
 import { toast } from 'react-toastify';
 import { FaGoogle, FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
 import logo from '../assets/gulit.png';
@@ -42,7 +44,15 @@ const LoginScreen = () => {
         callback: async (response) => {
           try {
             const res = await googleAuth({ credential: response.credential }).unwrap();
+            dispatch(clearCartItems());
             dispatch(setCredentials({ ...res }));
+            // Load this user's cart from DB
+            try {
+              const cartData = await dispatch(
+                usersApiSlice.endpoints.getCart.initiate(undefined, { forceRefetch: true })
+              ).unwrap();
+              dispatch(loadCartFromDB(cartData));
+            } catch (_) {}
             toast.success('Welcome back!');
             navigate(redirect);
           } catch (err) {
@@ -82,7 +92,13 @@ const LoginScreen = () => {
     e.preventDefault();
     try {
       const res = await login({ email, password }).unwrap();
+      dispatch(clearCartItems());
       dispatch(setCredentials({ ...res }));
+      // Load this user's cart from DB
+      const cartData = await dispatch(
+        usersApiSlice.endpoints.getCart.initiate(undefined, { forceRefetch: true })
+      ).unwrap();
+      dispatch(loadCartFromDB(cartData));
       toast.success('Welcome back!');
       navigate(redirect);
     } catch (err) {

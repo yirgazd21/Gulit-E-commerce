@@ -5,6 +5,7 @@ import { FaTrash, FaArrowLeft, FaShoppingBag, FaTag } from 'react-icons/fa';
 import { addToCart, removeFromCart, savePaymentMethod } from '../store/slices/cartSlice';
 import { toast } from 'react-toastify';
 import { BASE_URL } from '../store/slices/apiSlice';
+import { useAddToCartDBMutation, useRemoveFromCartDBMutation } from '../store/slices/usersApiSlice';
 
 const CartScreen = () => {
   const navigate = useNavigate();
@@ -14,12 +15,34 @@ const CartScreen = () => {
   const { cartItems } = cart;
   const { userInfo } = useSelector((state) => state.auth) || {};
 
+  const [addToCartDB] = useAddToCartDBMutation();
+  const [removeFromCartDB] = useRemoveFromCartDBMutation();
+
   const addToCartHandler = async (product, qty) => {
+    // Optimistic update
     dispatch(addToCart({ ...product, qty }));
+    // Sync to DB
+    try {
+      await addToCartDB({
+        productId: product._id || product.product,
+        qty,
+        selectedImage: product.selectedImage || product.image,
+        cartItemId: product.cartItemId,
+      }).unwrap();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to update cart');
+    }
   };
 
-  const removeFromCartHandler = (id) => {
-    dispatch(removeFromCart(id));
+  const removeFromCartHandler = async (cartItemId) => {
+    // Optimistic update
+    dispatch(removeFromCart(cartItemId));
+    // Sync to DB
+    try {
+      await removeFromCartDB(cartItemId).unwrap();
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to remove item');
+    }
   };
 
   const checkoutHandler = () => {

@@ -52,6 +52,23 @@ const userSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
+    cart: [{
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        name:          { type: String,  required: true },
+        image:         { type: String,  required: true },
+        price:         { type: Number,  required: true },
+        originalPrice: { type: Number,  default: 0 },
+        qty:           { type: Number,  required: true, default: 1 },
+        countInStock:  { type: Number,  default: 0 },
+        seller:        { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        selectedImage: { type: String,  default: '' },
+        cartItemId:    { type: String,  required: true },
+        addedAt:       { type: Date,    default: Date.now }
+    }],
 }, { timestamps: true });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

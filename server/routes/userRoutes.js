@@ -18,6 +18,13 @@ const {
     getUserBrowseHistory,
     removeFromBrowseHistory
 } = require('../controllers/userController');
+const {
+    getCart,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    syncCart,
+} = require('../controllers/cartController');
 
 
 // Define the paths
@@ -53,6 +60,16 @@ router.route('/browse-history')
 
 router.route('/browse-history/:productId')
     .delete(protect, removeFromBrowseHistory);
+
+// Cart routes
+router.route('/cart')
+    .get(protect, getCart)
+    .post(protect, addToCart)
+    .put(protect, syncCart)
+    .delete(protect, clearCart);
+
+router.route('/cart/:cartItemId')
+    .delete(protect, removeFromCart);
 
 
 module.exports = router;

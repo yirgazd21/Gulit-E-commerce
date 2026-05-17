@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useCreateOrderMutation, useInitializeChapaPaymentMutation } from '../store/slices/ordersApiSlice';
 import { clearCartItems } from '../store/slices/cartSlice';
+import { useClearCartDBMutation } from '../store/slices/usersApiSlice';
 import CheckoutSteps from '../components/CheckoutSteps';
 import { toast } from 'react-toastify';
 import { FaMapMarkerAlt, FaCreditCard, FaShoppingBag } from 'react-icons/fa';
@@ -18,6 +19,7 @@ const PlaceOrderScreen = () => {
 
   const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
   const [initializeChapaPayment, { isLoading, error }] = useInitializeChapaPaymentMutation();
+  const [clearCartDB] = useClearCartDBMutation();
 
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
@@ -102,6 +104,8 @@ const PlaceOrderScreen = () => {
           totalPrice: activeTotals.totalPrice,
         }).unwrap();
         dispatch(clearCartItems());
+        // Clear cart in DB too
+        try { await clearCartDB().unwrap(); } catch (_) {}
         localStorage.removeItem('pendingPayItem');
         navigate(`/order/${order._id}`);
       } catch (err) {
